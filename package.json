@@ -1,7 +1,7 @@
 {
   "name": "tout-do",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "tauri:clean": "cd src-tauri && cargo clean && cd ..",
     "tauri:d": "tauri dev",
-    "tauri:b": "tauri build"
+    "tauri:b": "tauri build",
+    "up-ver": "bash scripts/update-version.sh"
   },
   "dependencies": {
     "react": "^18.3.1",
