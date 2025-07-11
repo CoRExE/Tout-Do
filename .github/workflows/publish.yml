@@ -22,8 +22,8 @@ jobs:
             args: ''
           - platform: 'windows-latest'
             args: ''
-    runs-on: ${{ matrix.platform }}
 
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
