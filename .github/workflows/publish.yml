@@ -49,7 +49,7 @@ jobs:
         run: choco install webview2 -y
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Build & Upload via Tauri Action
         uses: tauri-apps/tauri-action@v0.5.19
