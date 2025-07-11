@@ -18,8 +18,9 @@ jobs:
           fetch-depth: 0  # récupère toute l’historique
 
       - name: Merge main into release
-        uses: DerTimonius/merge-git-branches@v1
+        uses: devmasx/merge-branch@v1.4.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branches: 'release'
-          force: true
+          type: now
+          from_branch: main
+          target_branch: release
+          github_token: ${{ secrets.GITHUB_TOKEN }}
