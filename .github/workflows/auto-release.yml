@@ -1,4 +1,4 @@
-name: Sync main to release
+name: 🔀 Sync main to release
 
 on:
   push:
