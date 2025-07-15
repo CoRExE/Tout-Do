@@ -52,11 +52,8 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: choco install webview2 -y
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
       - name: Install frontend dependencies
-        run: pnpm install
+        run: npm ci
 
       - name: Build & Upload via Tauri Action
         uses: tauri-apps/tauri-action@v0.5.19
