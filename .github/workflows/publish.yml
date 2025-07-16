@@ -48,13 +48,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1 libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Upgrade Chocolatey
-        if: matrix.platform == 'windows-latest'
-        run: choco upgrade chocolatey
-      
       - name: Install Windows dependencies
         if: matrix.platform == 'windows-latest'
-        run: choco install microsoft-edge-webview2 -y
+        run: choco install webview2-runtime -y
 
       - name: Install pnpm
         run: npm install -g pnpm
