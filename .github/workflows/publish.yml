@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-15'
+          - platform: 'macos-latest'
             args: '--target aarch64-apple-darwin'
           - platform: 'macos-latest'
             args: '--target x86_64-apple-darwin'
@@ -50,7 +50,7 @@ jobs:
 
       - name: Install Windows dependencies
         if: matrix.platform == 'windows-latest'
-        run: choco install webview2 -y
+        run: choco install microsoft-edge-webview2 -y
 
       - name: Install pnpm
         run: npm install -g pnpm
