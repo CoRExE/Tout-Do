@@ -52,8 +52,11 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: choco install webview2 -y
 
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Install frontend dependencies
-        run: npm ci      
+        run: pnpm install      
 
       - name: Rename macOS build output
         if: matrix.platform == 'macos-latest'
