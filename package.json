@@ -10,8 +10,7 @@
     "tauri": "tauri",
     "tauri:clean": "cd src-tauri && cargo clean && cd ..",
     "tauri:d": "tauri dev",
-    "tauri:b": "tauri build",
-    "push": "npm install --package-lock-only && git add package-lock.json && git commit -m 'Update package-lock.json' && git pull && git push"
+    "tauri:b": "tauri build"
   },
   "dependencies": {
     "react": "^18.3.1",
