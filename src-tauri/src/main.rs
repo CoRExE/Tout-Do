@@ -5,6 +5,11 @@ use serde::{Serialize, Deserialize};
 use std::{fs, sync::Mutex};
 use tauri::{State, Window, Manager, Emitter, AppHandle};
 
+// Plugins
+use tauri_plugin_updater::Builder as UpdaterBuilder;
+use tauri_plugin_dialog::init as dialog_init;
+use tauri_plugin_process::init as process_init;
+
 #[derive(Serialize, Deserialize, Clone)]
 struct Note { id: u32, content: String }
 
@@ -68,6 +73,9 @@ fn delete_note(id: u32, state: State<AppState>, app_handle: AppHandle, window: W
 
 fn main() {
   tauri::Builder::default()
+    .plugin(UpdaterBuilder::new().build())
+    .plugin(dialog_init())
+    .plugin(process_init())
     .setup(|app| {
       let handle = app.handle();
       let initial = load_initial(&handle);
