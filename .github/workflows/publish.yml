@@ -62,10 +62,13 @@ jobs:
         uses: tauri-apps/tauri-action@v0.5.19
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: app-v__VERSION__
-          releaseName: 'App v__VERSION__'
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Release ${{ github.ref_name }}'
           releaseBody: 'Tauri app built for each platform'
           releaseDraft: false
           prerelease: true
+          includeUpdaterJson: true
           args: ${{ matrix.args }} --verbose
