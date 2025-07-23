@@ -67,6 +67,12 @@ export default function App() {
     setNewContent('');
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      void add();
+    }
+  };
+
   const del = async (id: number) => {
     await invoke('delete_note', { id });
   };
@@ -74,7 +80,12 @@ export default function App() {
   return (
     <div>
       <h1>Notes</h1>
-      <input value={newContent} onChange={e => setNewContent(e.target.value)} />
+      <input 
+        value={newContent} 
+        onChange={e => setNewContent(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Type a note and press Enter"
+      />
       <button style={{ margin: '10px' }} onClick={add}>Ajouter</button>
       <ul>
         {notes.map(n => (
