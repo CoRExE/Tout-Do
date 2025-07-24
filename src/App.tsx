@@ -6,10 +6,20 @@ import { ask, message } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import "./App.css";
 
-interface Note { id: number; content: string; }
+interface Note {
+  id: number;
+  content: string;
+  /** Whether the note is pinned to the top of the list */
+  pinned?: boolean;
+}
 
 export default function App() {
   const [notes, setNotes] = useState<Note[]>([]);
+  /** Order notes so that pinned notes appear first */
+  const orderNotes = (list: Note[]) =>
+    [...list].sort((a, b) =>
+      a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1
+    );
   const [newContent, setNewContent] = useState('');
 
   async function checkForAppUpdates(onUserClick = false) {
@@ -50,10 +60,10 @@ export default function App() {
     void (async () => {
       const appWindow = await getCurrentWindow();
       const existing = await invoke<Note[]>('list_notes');
-      setNotes(existing);
+      setNotes(orderNotes(existing));
 
       const unlisten = await appWindow.listen<Note[]>('notes_updated', event => {
-        setNotes(event.payload);
+        setNotes(orderNotes(event.payload));
       });
       return () => {
         unlisten();
@@ -77,6 +87,10 @@ export default function App() {
     await invoke('delete_note', { id });
   };
 
+  const togglePin = async (id: number) => {
+    await invoke('toggle_pin', { id });
+  };
+
   return (
     <div>
       <h1>Notes</h1>
@@ -91,6 +105,13 @@ export default function App() {
         {notes.map(n => (
           <li key={n.id}>
             {n.content}
+            <button
+              style={{ margin: '10px' }}
+              onClick={() => togglePin(n.id)}
+              title={n.pinned ? 'Désépingler' : 'Épingler'}
+            >
+              {n.pinned ? '📌' : '📍'}
+            </button>
             <button style={{ margin: '10px' }} onClick={() => del(n.id)}>🗑️</button>
           </li>
         ))}
