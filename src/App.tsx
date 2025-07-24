@@ -4,6 +4,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { check } from '@tauri-apps/plugin-updater';
 import { ask, message } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import "./App.css";
 
 interface Note {
@@ -91,6 +92,29 @@ export default function App() {
     await invoke('toggle_pin', { id });
   };
 
+  const onDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+    
+    const items = Array.from(notes);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    
+    // Update the local state immediately for a responsive UI
+    setNotes(items);
+    
+    try {
+      // Send the new order to the backend
+      await invoke('reorder_notes', { 
+        orderedIds: items.map(note => note.id) 
+      });
+    } catch (error) {
+      console.error('Failed to reorder notes:', error);
+      // If there's an error, refresh the notes from the backend
+      const updatedNotes = await invoke<Note[]>('list_notes');
+      setNotes(orderNotes(updatedNotes));
+    }
+  };
+
   return (
     <div>
       <h1>Notes</h1>
@@ -101,21 +125,60 @@ export default function App() {
         placeholder="Type a note and press Enter"
       />
       <button style={{ margin: '10px' }} onClick={add}>Ajouter</button>
-      <ul>
-        {notes.map(n => (
-          <li key={n.id}>
-            {n.content}
-            <button
-              style={{ margin: '10px' }}
-              onClick={() => togglePin(n.id)}
-              title={n.pinned ? 'Désépingler' : 'Épingler'}
-            >
-              {n.pinned ? '📌' : '📍'}
-            </button>
-            <button style={{ margin: '10px' }} onClick={() => del(n.id)}>🗑️</button>
-          </li>
-        ))}
-      </ul>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="notes">
+          {(provided) => (
+            <ul {...provided.droppableProps} ref={provided.innerRef}>
+              {notes.map((n, idx) => (
+                <Draggable key={n.id} draggableId={n.id.toString()} index={idx}>
+                  {(provided) => (
+                    <li
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      style={{
+                        ...provided.draggableProps.style,
+                        listStyle: 'none',
+                        padding: '10px',
+                        margin: '5px 0',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <span>{n.content}</span>
+                      <div>
+                        <button
+                          style={{ margin: '0 5px' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void togglePin(n.id);
+                          }}
+                          title={n.pinned ? 'Désépingler' : 'Épingler'}
+                        >
+                          {n.pinned ? '📌' : '📍'}
+                        </button>
+                        <button 
+                          style={{ margin: '0 5px' }} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void del(n.id);
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </li>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </ul>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 }
