@@ -3,6 +3,8 @@
 
 use serde::{Serialize, Deserialize};
 use std::{fs, sync::Mutex};
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use tauri::{State, Window, Manager, Emitter, AppHandle};
 
 // Plugins
@@ -29,7 +31,6 @@ fn notes_file_path(handle: &AppHandle) -> std::path::PathBuf {
   dir
 }
 
-
 // 📥 Charger les notes au démarrage
 fn load_initial(handle: &AppHandle) -> Vec<Note> {
   let path = notes_file_path(handle);
@@ -39,9 +40,25 @@ fn load_initial(handle: &AppHandle) -> Vec<Note> {
     .unwrap_or_default()
 }
 
+// 💾 Sauvegarder les notes avec BufWriter pour de meilleures performances
+fn save_notes(notes: &[Note], app_handle: &AppHandle) -> std::io::Result<()> {
+  let path = notes_file_path(app_handle);
+  if let Some(parent) = path.parent() {
+    fs::create_dir_all(parent)?;
+  }
+  let file = File::create(&path)?;
+  let mut writer = BufWriter::new(file);
+  serde_json::to_writer(&mut writer, notes)?;
+  writer.flush()?;
+  Ok(())
+}
+
 #[tauri::command]
 fn list_notes(state: State<AppState>) -> Vec<Note> {
-  state.notes.lock().unwrap().clone()
+  let mut notes = state.notes.lock().unwrap().clone();
+  // Trier les notes pour que les épinglées soient en premier
+  notes.sort_by(|a, b| b.pinned.cmp(&a.pinned));
+  notes
 }
 
 #[tauri::command]
@@ -49,12 +66,12 @@ fn add_note(content: String, state: State<AppState>, app_handle: AppHandle, wind
   let mut notes = state.notes.lock().unwrap();
   let mut next_id = state.next_id.lock().unwrap();
 
-  notes.push(Note { id: *next_id, content, pinned : false });
+  notes.push(Note { id: *next_id, content, pinned: false });
   *next_id += 1;
 
-  let path = notes_file_path(&app_handle);
-  fs::create_dir_all(path.parent().unwrap()).unwrap();
-  fs::write(&path, serde_json::to_string(&*notes).unwrap()).unwrap();
+  if let Err(e) = save_notes(&notes, &app_handle) {
+    eprintln!("Erreur lors de la sauvegarde des notes: {}", e);
+  }
 
   window.emit("notes_updated", notes.clone()).unwrap();
 }
@@ -64,9 +81,9 @@ fn delete_note(id: u32, state: State<AppState>, app_handle: AppHandle, window: W
   let mut notes = state.notes.lock().unwrap();
   notes.retain(|n| n.id != id);
 
-  let path = notes_file_path(&app_handle);
-  fs::create_dir_all(path.parent().unwrap()).unwrap();
-  fs::write(&path, serde_json::to_string(&*notes).unwrap()).unwrap();
+  if let Err(e) = save_notes(&notes, &app_handle) {
+    eprintln!("Erreur lors de la sauvegarde des notes: {}", e);
+  }
 
   window.emit("notes_updated", notes.clone()).unwrap();
 }
@@ -78,9 +95,35 @@ fn toggle_pin(id: u32, state: State<AppState>, app_handle: AppHandle, window: Wi
     note.pinned = !note.pinned;
   }
 
-  let path = notes_file_path(&app_handle);
-  fs::create_dir_all(path.parent().unwrap()).unwrap();
-  fs::write(&path, serde_json::to_string(&*notes).unwrap()).unwrap();
+  if let Err(e) = save_notes(&notes, &app_handle) {
+    eprintln!("Erreur lors de la sauvegarde des notes: {}", e);
+  }
+
+  window.emit("notes_updated", notes.clone()).unwrap();
+}
+
+#[tauri::command]
+fn reorder_notes(ordered_ids: Vec<u32>, state: State<AppState>, app_handle: AppHandle, window: Window) {
+  let mut notes = state.notes.lock().unwrap();
+  
+  // Créer un nouveau vecteur dans l'ordre spécifié
+  let mut new_order = Vec::with_capacity(ordered_ids.len());
+  let mut remaining_notes = std::mem::take(&mut *notes);
+  
+  for id in ordered_ids {
+    if let Some(pos) = remaining_notes.iter().position(|n| n.id == id) {
+      new_order.push(remaining_notes.remove(pos));
+    }
+  }
+  
+  // Ajouter les notes restantes (au cas où il y en aurait qui ne sont pas dans ordered_ids)
+  new_order.extend(remaining_notes);
+  
+  *notes = new_order;
+
+  if let Err(e) = save_notes(&*notes, &app_handle) {
+    eprintln!("Erreur lors de la sauvegarde des notes: {}", e);
+  }
 
   window.emit("notes_updated", notes.clone()).unwrap();
 }
@@ -101,7 +144,13 @@ fn main() {
       });
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![list_notes, add_note, delete_note, toggle_pin])
+    .invoke_handler(tauri::generate_handler![
+      list_notes,
+      add_note,
+      delete_note,
+      toggle_pin,
+      reorder_notes
+    ])
     .run(tauri::generate_context!())
     .expect("Erreur au démarrage de l'application");
 }
