@@ -52,9 +52,6 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
-      - name: Patch tauri.conf.json with version
-        run: node scripts/patch-tauri-config.js
-
       - name: Build & Upload via Tauri Action
         uses: tauri-apps/tauri-action@v0.5.19
         env:
