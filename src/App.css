@@ -70,7 +70,7 @@ button {
   font-family: inherit;
   color: #0f0f0f;
   background-color: #ffffff;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s, color 0.25s;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -81,6 +81,7 @@ button {
 button:hover {
   border-color: #396cd8;
 }
+
 button:active {
   border-color: #396cd8;
   background-color: #e8e8e8;
@@ -106,11 +107,26 @@ button {
   }
 
   input,
-  button {
+  button,
+  input:focus,
+  button:focus {
     color: #ffffff;
-    background-color: #0f0f0f98;
+    background-color: #1a1a1a;
+    border-color: #333;
   }
+  
+  button:hover {
+    background-color: #2a2a2a;
+    border-color: #396cd8;
+  }
+  
   button:active {
-    background-color: #0f0f0f69;
+    background-color: #333;
+  }
+  
+  /* Style spécifique pour les notes en mode sombre */
+  li {
+    background-color: #1a1a1a !important;
+    color: #f6f6f6 !important;
   }
 }
