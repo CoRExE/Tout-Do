@@ -11,7 +11,7 @@ use tauri_plugin_dialog::init as dialog_init;
 use tauri_plugin_process::init as process_init;
 
 #[derive(Serialize, Deserialize, Clone)]
-struct Note { id: u32, content: String }
+struct Note { id: u32, content: String, pinned: bool }
 
 #[derive(Default)]
 struct AppState {
@@ -49,7 +49,7 @@ fn add_note(content: String, state: State<AppState>, app_handle: AppHandle, wind
   let mut notes = state.notes.lock().unwrap();
   let mut next_id = state.next_id.lock().unwrap();
 
-  notes.push(Note { id: *next_id, content });
+  notes.push(Note { id: *next_id, content, pinned : false });
   *next_id += 1;
 
   let path = notes_file_path(&app_handle);
@@ -63,6 +63,20 @@ fn add_note(content: String, state: State<AppState>, app_handle: AppHandle, wind
 fn delete_note(id: u32, state: State<AppState>, app_handle: AppHandle, window: Window) {
   let mut notes = state.notes.lock().unwrap();
   notes.retain(|n| n.id != id);
+
+  let path = notes_file_path(&app_handle);
+  fs::create_dir_all(path.parent().unwrap()).unwrap();
+  fs::write(&path, serde_json::to_string(&*notes).unwrap()).unwrap();
+
+  window.emit("notes_updated", notes.clone()).unwrap();
+}
+
+#[tauri::command]
+fn toggle_pin(id: u32, state: State<AppState>, app_handle: AppHandle, window: Window) {
+  let mut notes = state.notes.lock().unwrap();
+  if let Some(note) = notes.iter_mut().find(|n| n.id == id) {
+    note.pinned = !note.pinned;
+  }
 
   let path = notes_file_path(&app_handle);
   fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -87,7 +101,7 @@ fn main() {
       });
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![list_notes, add_note, delete_note])
+    .invoke_handler(tauri::generate_handler![list_notes, add_note, delete_note, toggle_pin])
     .run(tauri::generate_context!())
     .expect("Erreur au démarrage de l'application");
 }
