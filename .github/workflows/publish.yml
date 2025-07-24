@@ -50,7 +50,10 @@ jobs:
         run: npm install -g pnpm
 
       - name: Install frontend dependencies
-        run: pnpm install      
+        run: pnpm install
+
+      - name: Patch tauri.conf.json with version
+        run: node scripts/patch-tauri-config.js
 
       - name: Build & Upload via Tauri Action
         uses: tauri-apps/tauri-action@v0.5.19
@@ -59,10 +62,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Release ${{ github.ref_name }}'
+          tagName: app-v__VERSION__
+          releaseName: 'Release app-v__VERSION__'
           releaseBody: 'Tauri app built for each platform'
           releaseDraft: false
-          prerelease: true
+          prerelease: false
           includeUpdaterJson: true
           args: ${{ matrix.args }} --verbose
