@@ -135,21 +135,6 @@ fn reorder_notes(ordered_ids: Vec<u32>, state: State<AppState>, app_handle: AppH
 
 fn main() {
   tauri::Builder::default()
-    .setup(|app| {
-      let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
-      let menu = Menu::with_items(app, &[&quit_item])?;
-      let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
-        .menu(&menu)
-        .show_menu_on_left_click(true)
-        .on_menu_event(|app, event| {
-          if event.id.as_ref() == "quit" {
-            app.exit(0);
-          }
-        })
-        .build(app)?;
-      Ok(())
-    })
     .plugin(UpdaterBuilder::new().build())
     .plugin(dialog_init())
     .plugin(process_init())
@@ -162,7 +147,31 @@ fn main() {
         notes: Mutex::new(initial),
         next_id: Mutex::new(next_id),
       });
+      // let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
+      // let menu = Menu::with_items(app, &[&quit_item])?;
+      let _tray = TrayIconBuilder::new()
+        .icon(app.default_window_icon().unwrap().clone())
+        //.menu(&menu)
+        .show_menu_on_left_click(true)
+        .on_menu_event(|app, event| {
+          if event.id.as_ref() == "quit" {
+            app.exit(0);
+          }
+        })
+        .build(app)?;
       Ok(())
+    })
+    .on_window_event(|window, event| match event {
+      tauri::WindowEvent::CloseRequested { api, .. } => {
+        #[cfg(not(target_os = "macos"))]{
+          window.hide().unwrap();
+        }
+        #[cfg(target_os = "macos")]{
+          tauri::AppHandle::hide(&window.app_handle()).unwrap();
+        }
+        api.prevent_close();
+      }
+      _ => {}
     })
     .invoke_handler(tauri::generate_handler![
       list_notes,
