@@ -1,7 +1,7 @@
 {
   "name": "tout-do",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.6.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "tauri:clean": "cd src-tauri && cargo clean && cd ..",
     "tauri:d": "tauri dev",
-    "tauri:b": "tauri build"
+    "tauri:b": "tauri build",
+    "up-version": "node scripts/bump-version.cjs"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

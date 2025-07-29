@@ -24,6 +24,7 @@ struct Note { id: u32, content: String, pinned: bool }
 struct AppState {
   notes: Mutex<Vec<Note>>,
   next_id: Mutex<u32>,
+  notif_enabled: Mutex<bool>,
 }
 
 // 📍 Créer un chemin vers notes.json via AppHandle
@@ -146,16 +147,27 @@ fn main() {
       app.manage(AppState {
         notes: Mutex::new(initial),
         next_id: Mutex::new(next_id),
+        notif_enabled: Mutex::new(true),
       });
-      // let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
-      // let menu = Menu::with_items(app, &[&quit_item])?;
+      let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
+      let notif_item = MenuItem::with_id(app, "notif", "Notifications ✅", true, None::<&str>)?;
+      let notif_item_clone = notif_item.clone();
+      let menu = Menu::with_items(app, &[&notif_item, &quit_item])?;
       let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
-        //.menu(&menu)
-        .show_menu_on_left_click(true)
-        .on_menu_event(|app, event| {
+        .menu(&menu)
+        .on_menu_event(move |app, event| {
           if event.id.as_ref() == "quit" {
             app.exit(0);
+          } else if event.id.as_ref() == "notif" {
+            let state = app.state::<AppState>();
+            let mut notif_enabled = state.notif_enabled.lock().unwrap();
+            *notif_enabled = !*notif_enabled;
+            if *notif_enabled {
+              notif_item_clone.set_text("Notifications ✅").unwrap();
+            } else {
+              notif_item_clone.set_text("Notifications ❌").unwrap();
+            }
           }
         })
         .build(app)?;
