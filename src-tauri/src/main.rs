@@ -6,6 +6,11 @@ use std::{fs, sync::Mutex};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use tauri::{State, Window, Manager, Emitter, AppHandle};
+use tauri::{
+  menu::{Menu, MenuItem},
+  tray::TrayIconBuilder
+};
+
 
 // Plugins
 use tauri_plugin_updater::Builder as UpdaterBuilder;
@@ -19,6 +24,7 @@ struct Note { id: u32, content: String, pinned: bool }
 struct AppState {
   notes: Mutex<Vec<Note>>,
   next_id: Mutex<u32>,
+  notif_enabled: Mutex<bool>,
 }
 
 // 📍 Créer un chemin vers notes.json via AppHandle
@@ -141,8 +147,43 @@ fn main() {
       app.manage(AppState {
         notes: Mutex::new(initial),
         next_id: Mutex::new(next_id),
+        notif_enabled: Mutex::new(true),
       });
+      let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
+      let notif_item = MenuItem::with_id(app, "notif", "Notifications ✅", true, None::<&str>)?;
+      let notif_item_clone = notif_item.clone();
+      let menu = Menu::with_items(app, &[&notif_item, &quit_item])?;
+      let _tray = TrayIconBuilder::new()
+        .icon(app.default_window_icon().unwrap().clone())
+        .menu(&menu)
+        .on_menu_event(move |app, event| {
+          if event.id.as_ref() == "quit" {
+            app.exit(0);
+          } else if event.id.as_ref() == "notif" {
+            let state = app.state::<AppState>();
+            let mut notif_enabled = state.notif_enabled.lock().unwrap();
+            *notif_enabled = !*notif_enabled;
+            if *notif_enabled {
+              notif_item_clone.set_text("Notifications ✅").unwrap();
+            } else {
+              notif_item_clone.set_text("Notifications ❌").unwrap();
+            }
+          }
+        })
+        .build(app)?;
       Ok(())
+    })
+    .on_window_event(|window, event| match event {
+      tauri::WindowEvent::CloseRequested { api, .. } => {
+        #[cfg(not(target_os = "macos"))]{
+          window.hide().unwrap();
+        }
+        #[cfg(target_os = "macos")]{
+          tauri::AppHandle::hide(&window.app_handle()).unwrap();
+        }
+        api.prevent_close();
+      }
+      _ => {}
     })
     .invoke_handler(tauri::generate_handler![
       list_notes,
