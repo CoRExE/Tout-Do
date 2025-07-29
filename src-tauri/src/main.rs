@@ -16,6 +16,7 @@ use tauri::{
 use tauri_plugin_updater::Builder as UpdaterBuilder;
 use tauri_plugin_dialog::init as dialog_init;
 use tauri_plugin_process::init as process_init;
+use tauri_plugin_notification::{init as notification_init, NotificationExt};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Note { id: u32, content: String, pinned: bool }
@@ -139,6 +140,7 @@ fn main() {
     .plugin(UpdaterBuilder::new().build())
     .plugin(dialog_init())
     .plugin(process_init())
+    .plugin(notification_init())
     .setup(|app| {
       let handle = app.handle();
       let initial = load_initial(&handle);
@@ -173,6 +175,7 @@ fn main() {
             *notif_enabled = !*notif_enabled;
             if *notif_enabled {
               notif_item_clone.set_text("Notifications ✅").unwrap();
+              app.notification().builder().title("Tout-Do").body("Notifications activées").show().unwrap();
             } else {
               notif_item_clone.set_text("Notifications ❌").unwrap();
             }
@@ -181,6 +184,15 @@ fn main() {
           }
         })
         .build(app)?;
+      if !app.notification().permission_state().is_ok() {
+        app.notification().request_permission().unwrap();
+      }
+      app.notification()
+        .builder()
+        .title("Tout-Do")
+        .body("L'application s'est lancé")
+        .show()
+        .unwrap();
       Ok(())
     })
     .on_window_event(|window, event| match event {
