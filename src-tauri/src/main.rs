@@ -8,7 +8,7 @@ use std::io::{BufWriter, Write};
 use tauri::{State, Window, Manager, Emitter, AppHandle};
 use tauri::{
   menu::{Menu, MenuItem},
-  tray::TrayIconBuilder
+  tray::{TrayIconBuilder, TrayIconEvent}
 };
 
 
@@ -151,11 +151,19 @@ fn main() {
       });
       let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
       let notif_item = MenuItem::with_id(app, "notif", "Notifications ✅", true, None::<&str>)?;
+      let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
       let notif_item_clone = notif_item.clone();
-      let menu = Menu::with_items(app, &[&notif_item, &quit_item])?;
+      let menu = Menu::with_items(app, &[&show_item,&notif_item, &quit_item])?;
       let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|app, event| match event {
+          TrayIconEvent::DoubleClick { .. } => {
+            app.app_handle().show().unwrap();
+          }
+          _ => {}
+        })
         .on_menu_event(move |app, event| {
           if event.id.as_ref() == "quit" {
             app.exit(0);
@@ -168,6 +176,8 @@ fn main() {
             } else {
               notif_item_clone.set_text("Notifications ❌").unwrap();
             }
+          } else if event.id.as_ref() == "show" {
+            app.app_handle().show().unwrap();
           }
         })
         .build(app)?;
