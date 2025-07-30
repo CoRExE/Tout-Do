@@ -8,7 +8,7 @@ use std::io::{BufWriter, Write};
 use tauri::{State, Window, Manager, Emitter, AppHandle};
 use tauri::{
   menu::{Menu, MenuItem},
-  tray::TrayIconBuilder
+  tray::{TrayIconBuilder, TrayIconEvent}
 };
 
 
@@ -16,6 +16,7 @@ use tauri::{
 use tauri_plugin_updater::Builder as UpdaterBuilder;
 use tauri_plugin_dialog::init as dialog_init;
 use tauri_plugin_process::init as process_init;
+use tauri_plugin_notification::{init as notification_init, NotificationExt};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct Note { id: u32, content: String, pinned: bool }
@@ -139,6 +140,7 @@ fn main() {
     .plugin(UpdaterBuilder::new().build())
     .plugin(dialog_init())
     .plugin(process_init())
+    .plugin(notification_init())
     .setup(|app| {
       let handle = app.handle();
       let initial = load_initial(&handle);
@@ -151,11 +153,19 @@ fn main() {
       });
       let quit_item = MenuItem::with_id(app,"quit", "Quit", true, None::<&str>)?;
       let notif_item = MenuItem::with_id(app, "notif", "Notifications ✅", true, None::<&str>)?;
+      let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
       let notif_item_clone = notif_item.clone();
-      let menu = Menu::with_items(app, &[&notif_item, &quit_item])?;
+      let menu = Menu::with_items(app, &[&show_item,&notif_item, &quit_item])?;
       let _tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|app, event| match event {
+          TrayIconEvent::DoubleClick { .. } => {
+            app.app_handle().show().unwrap();
+          }
+          _ => {}
+        })
         .on_menu_event(move |app, event| {
           if event.id.as_ref() == "quit" {
             app.exit(0);
@@ -165,12 +175,24 @@ fn main() {
             *notif_enabled = !*notif_enabled;
             if *notif_enabled {
               notif_item_clone.set_text("Notifications ✅").unwrap();
+              app.notification().builder().title("Tout-Do").body("Notifications activées").show().unwrap();
             } else {
               notif_item_clone.set_text("Notifications ❌").unwrap();
             }
+          } else if event.id.as_ref() == "show" {
+            app.app_handle().show().unwrap();
           }
         })
         .build(app)?;
+      if !app.notification().permission_state().is_ok() {
+        app.notification().request_permission().unwrap();
+      }
+      app.notification()
+        .builder()
+        .title("Tout-Do")
+        .body("L'application s'est lancé")
+        .show()
+        .unwrap();
       Ok(())
     })
     .on_window_event(|window, event| match event {
