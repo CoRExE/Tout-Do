@@ -180,7 +180,7 @@ fn main() {
               notif_item_clone.set_text("Notifications ❌").unwrap();
             }
           } else if event.id.as_ref() == "show" {
-            app.app_handle().show().unwrap();
+            app.show().unwrap();
           }
         })
         .build(app)?;
