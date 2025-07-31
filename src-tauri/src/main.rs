@@ -28,6 +28,14 @@ struct AppState {
   notif_enabled: Mutex<bool>,
 }
 
+// Faire apparaitre la fenetre
+fn show_window(app_handle: &AppHandle) {
+  if let Some(window) = app_handle.get_webview_window("main") {
+    let _ = window.show();
+    let _ = window.set_focus();
+  }
+}
+
 // 📍 Créer un chemin vers notes.json via AppHandle
 fn notes_file_path(handle: &AppHandle) -> std::path::PathBuf {
   let mut dir = handle
@@ -162,7 +170,7 @@ fn main() {
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|app, event| match event {
           TrayIconEvent::DoubleClick { .. } => {
-            app.app_handle().show().unwrap();
+            show_window(&app.app_handle());
           }
           _ => {}
         })
@@ -180,7 +188,7 @@ fn main() {
               notif_item_clone.set_text("Notifications ❌").unwrap();
             }
           } else if event.id.as_ref() == "show" {
-            app.show().unwrap();
+            show_window(&app.app_handle());
           }
         })
         .build(app)?;
